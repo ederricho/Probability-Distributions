@@ -1,0 +1,116 @@
+---
+title: "Pitman Test Null Distribution"
+author: "Edgar Derricho"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Run All First
+
+- You will need to imput your dataset and the proposed median in lines 45 and 46.
+
+# Pitman Test
+
+Suppose that $X_1,X_2,...,x_n \sim iid \text{ }F$ where $F$ is symmetric aboit its mean (median) $\theta$. We want to test the hypothesis that $H_0:\theta = \theta_0(\text{ known value}),H_1 \theta \neq \theta_0$.
+
+Method:
+
+consider the $n$ differences: $d_i = x_i-\theta_0,i=1,2,...,n$. Under $H_0$, the sign of each $d_i$ is equally likely to be positive or negtive.
+
+ie. $P(d_i>0)=P(d_i<0)=\frac{1}{2}$
+
+Let
+
+$$S_+=\sum^{n}_{i=1}d_iI(d_i>0),S_-=+\sum^{}_{i=1}|d_i|I(d_i<0)$$
+
+**Note: $S_+$ is the sum of the positive deviations from $\theta_0$**
+
+Larger observed values of $S_+$ indicate that $H_0$ is not true (clearly when $H_0$ does not hold there is more likely to be a preponderance wither of positive or negative signs assiciated with the $d_i$)
+
+Reject $H_0$ at level $\alpha$ when
+
+p-value = $P(S_+ \geq S_{+obs}) < \alpha$ where $S_{+obs}$ is an observed value of $S_+$
+
+# Null Distribution of Pitman Statistic $S_+$
+
+We will simulate 10000 pitman tests statistics to find the null distribution of $S_+$
+
+You will need to input your sample and $\theta_0$
+```{r}
+# Sample
+sample <- c(12,18,24,26,37,40,42,47,49,49,78,108) # Sample
+theta <- 30 # Theta_0
+```
+
+Pitman Null Distribution Calculation
+```{r}
+# ---------- Sample Sizes and Possible Values ----------
+n <- length(sample) # Length of Sample
+diff <- abs(sample - theta) # Difference Vector
+sPlusVector <- numeric(iterations) # Empty Vector of SPlus Values
+sMinusVector <- numeric(iterations) # Empty Vector of SMinus Values
+indexes <- c(1:n) 
+
+# ---------- Pitman Tests ----------
+iterations <- 10000
+for(i in 1:iterations){
+  ones <- rep(1, n) # Vector of 1's to Multiply
+  signs <- sample(x = c(1,-1),
+                  size = n,
+                  replace = TRUE) # Number of Negative Signs
+  modDiff <- diff * signs # Sample with Negative Indexes
+  sum <- sum(modDiff[modDiff > 0]) # Sum of Modified Difference Vector
+  sumNeg <- abs(sum(modDiff[modDiff < 0])) # Sum of S Minus Vector
+  sPlusVector[i] <- sum # Append SPlus Vector with SPlus
+  sMinusVector[i] <- sumNeg # Append SMinus Vector with SMinus
+}
+
+#---------------------------------------------------------------
+# ---------- Right-Tail Critical Values for SPlus ----------
+ninetyPercent <- quantile(sPlusVector, 0.90)
+ninetyFivePercent <- quantile(sPlusVector, 0.95)
+ninetyNinePercent <- quantile(sPlusVector, 0.99)
+
+# ---------- Right-Tail Critical Values for SPlus ----------
+ninetyPercentN <- quantile(sMinusVector, 0.90)
+ninetyFivePercentN <- quantile(sMinusVector, 0.95)
+ninetyNinePercentN <- quantile(sMinusVector, 0.99)
+# ---------------------------------------------------------------
+
+# ----------------------------------------------------------------
+# ---------- Print Critical Values ----------
+cat("---------- For S-Plus ----------","\n",
+  "Critical Value at 90%: ", ninetyPercent,"\n",
+    "Critical Value at 95%: ", ninetyFivePercent,"\n",
+    "Critical Value at 99%: ", ninetyNinePercent, "\n")
+
+# ---------- Print Critical Values ----------
+cat("---------- For S-Minus ----------","\n",
+  "Critical Value at 90%: ", ninetyPercentN,"\n",
+    "Critical Value at 95%: ", ninetyFivePercentN,"\n",
+    "Critical Value at 99%: ", ninetyNinePercentN)
+# -----------------------------------------------------------------
+
+# ---------- Plot Histograms ----------
+hist(sPlusVector)
+hist(sMinusVector)
+```
+
+Notice the $S_+$ and $S_-$ distributions are virtually identical.
+
+P-Value Calculator for Calculated $S_+$
+```{r}
+splus <- 95 # S-Plus from Problem
+length(sMinusVector[sMinusVector>=splus])/iterations # P-Value
+```
+
+P-Value Calculator for Calculated $S_-$
+```{r}
+sminus <- 40 # S-Plus from Problem
+length(sMinusVector[sMinusVector<=sminus])/iterations # P-Value
+```
+

@@ -217,7 +217,7 @@ df
 
 Export the Table to a CSV File
 ```{r}
-write.csv(df, "C:/Users/EJ's/Desktop/Kendall_pValues2.csv" )
+write.csv(df, "Path/Kendall_pValues2.csv" )
 print("CSV File Created Successfully")
 ```
 

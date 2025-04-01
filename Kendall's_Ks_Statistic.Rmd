@@ -1,0 +1,224 @@
+---
+title: "Distribution_TT"
+output: html_document
+date: "2025-03-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# A Distribution-Free test for the Slope $\beta$
+
+Data: $(x_i,y_i),i=1,2,...,n$. The $X_i's$ are assumed to be distinct, without loss of generality, we take $x_1<x_2<...<x_n$
+
+Assumptions:
+
+1. $y_i = \alpha+\beta x_i + \epsilon_i, i=1,2,...,n$
+2. $\epsilon_i \sim \text{ iid } F(unknown,continuous)$, $med(F)=0$, $F^{-1}(1/2)=0$
+
+# Test for $\beta$:
+
+$$H_0:\beta = \beta_0, H_1: \beta > \beta_0$$
+
+Let $d_i=y_i-\beta_i x_i,i=\sqrt{n}$.
+
+The Theil Statistic is defined by:
+
+$$T_t = \sum_{i<j} sgn(d_j-d_i)=\sum^{n-1}_{i=1}\sum^{n}_{j=i+1}sgn(d_j-d_i)$$
+
+Let us find the distribution of $T_t$
+
+Steps:
+
+1. Generate random samples of $(X,Y)$
+2. Calculate $d_i$
+3. Calculate $T_s$
+4. Repeat steps 1-3 10000 times.
+```{r}
+# ---------- Random Samples of (X,Y) ----------
+sampleMax <- 1000
+sampleSize <- 4
+xSamples <- c(1:sampleMax)
+alpha <- 1 #runif(n = 1, min = 1, max = 10) # Value of Alpha
+beta <- 1 #runif(n = 1, min = 1, max = 10) # Value of Beta
+
+# ---------- Residuals ----------
+data <- sample(xSamples, sampleSize, replace = TRUE)
+resid <- data - median(data)
+#cat("Median of Residuals: ", median(resid))
+
+# ---------- Make Data and Line ----------
+x_i <- sample(xSamples, sampleSize, replace = TRUE) # Random Sample of X_i (sorted)
+y_i <- alpha + beta * x_i + resid # Y_i
+
+# ---------- Plot (X,Y) ----------
+plot(x_i, y_i)
+
+# ---------- Calculate d_i and signs ----------
+d_i <- y_i - beta * x_i # Calculate d_i
+
+# ---------- Calculate T_t ----------
+sumVec <- c()
+for(i in 1:(sampleSize-1)){
+  for(j in (i+1):(sampleSize)){
+    #cat(j,",",j+1,",",i,",",sampleSize - i)
+    sign <- sign(d_i[j] - d_i[i])
+    sumVec <- append(sumVec, sign)
+    #print(sign)
+  }
+}
+
+d_i
+sum(sumVec)
+```
+
+Let's find the Null Distribution of $T_t$ for a specific sample size. We will use random values of $\alpha$ and $\beta$, create residuals with median $0$, create the data $(X_i,Y_i)$ where $i = 1,2,..n$, and create Kendall Statistics for 10000 iterations.
+```{r}
+iterations <- 10000
+superSumVec <- c()
+sampleMax <- 1000
+sampleSize <- 4
+xSamples <- c(1:sampleMax)
+
+for(k in 1:iterations){
+  #---------- Alpha and Beta Values ----------
+  alpha <- runif(n = 1, min = 1, max = 100) # Value of Alpha
+  beta <- runif(n = 1, min = 1, max = 100) # Value of Beta
+  
+  # ---------- Residuals ----------
+  data <- sample(c(1:sampleMax), sampleSize, replace = TRUE)
+  resid <- data - median(data) # Create Residuals with MEdian = 0
+  #cat("Median of Residuals: ", median(resid))
+
+  # ---------- Make Data ----------
+  x_i <- sample(xSamples, sampleSize, replace = TRUE) # Random Sample of X_i
+  y_i <- alpha + beta * x_i + resid # Y_i
+
+  # ---------- Calculate d_i and signs ----------
+  d_i <- y_i - beta * x_i # Calculate d_i
+  signs <- sign(d_i) # Convert to Signs
+
+  sumVec <- c()
+  for(i in 1:(sampleSize-1)){
+    for(j in (i+1):(sampleSize)){
+      #cat(j,",",j+1,",",i,",",sampleSize - i)
+      sign <- sign(d_i[j] - d_i[i])
+      sumVec <- append(sumVec, sign)
+      #print(sign)
+    }
+  sum <- sum(sumVec)   
+  }
+  superSumVec <- append(superSumVec, sum)
+}
+
+hist(superSumVec, breaks = 50, col = "lightblue", main = "Histogram of Kendall's Ks Statistic")
+```
+
+
+Let's make a column of the table
+```{r}
+x <- seq(0, 100, 2) # Sequence of x's from the Table
+probVec <- numeric(length(x)) # Empty Vector of Probabilities
+
+for(i in 1:length(x)){
+  prob <- length(superSumVec[superSumVec >= x[i]])/iterations
+  probVec[i] <- prob 
+}
+
+round(probVec, 3)
+
+```
+
+# Creating the Table using a Function
+
+Let's make the Kendall Null Distribution a function
+```{r}
+kendallNull <- function(sampleSize){
+  # ---------------------------------------------
+  # ---------- Null Distribution of Ks ----------
+  # ---------------------------------------------
+  iterations <- 10000
+  superSumVec <- c()
+  sampleMax <- 1000
+  sampleSize <- sampleSize
+  xSamples <- c(1:sampleMax)
+
+  for(k in 1:iterations){
+    #---------- Alpha and Beta Values ----------
+    alpha <- runif(n = 1, min = 0, max = 1) # Value of Alpha
+    beta <- runif(n = 1, min = 0, max = 1) # Value of Beta
+  
+    # ---------- Residuals ----------
+    data <- sample(c(1:sampleMax), sampleSize, replace = TRUE)
+    resid <- data - median(data) # Create Residuals with MEdian = 0
+    #cat("Median of Residuals: ", median(resid))
+
+    # ---------- Make Data ----------
+    x_i <- c(1:sampleSize) # x_i
+    #x_iSample <- sample(xSamples, sampleSize, replace = TRUE) # Random Sample of   X_i
+    y_i <- alpha + beta * x_i + resid # Y_i
+
+    # ---------- Calculate d_i and signs ----------
+    d_i <- y_i - beta * x_i # Calculate d_i
+    signs <- sign(d_i) # Convert to Signs
+  
+    # ---------- Calculate Ks Statistic ----------
+    sumVec <- c()
+    for(i in 1:(sampleSize-1)){
+      for(j in (i+1):(sampleSize)){
+        #cat(j,",",j+1,",",i,",",sampleSize - i)
+        sign <- sign(d_i[j] - d_i[i])
+        sumVec <- append(sumVec, sign)
+        #print(sign)
+      }
+    sum <- sum(sumVec)   
+    }
+    superSumVec <- append(superSumVec, sum)
+  }
+  x <- seq(0, 100, 2) # Sequence of x
+  probVec <- c() # Empty Vector of p-values
+
+  # ---------------------------------------------------
+  # ---------- Calculate Probability Ks >= x ----------
+  # ---------------------------------------------------
+  for(i in 1:length(x)){
+    prob <- length(superSumVec[superSumVec >= x[i]])/iterations # p-value
+    probVec <- append(probVec, prob) # Append p-value Vector
+  }
+  
+  # ---------------------------------------------------
+  # ---------- Create Table of Distributions ----------
+  # ---------------------------------------------------
+  table <- round(probVec, 3)
+  return(table)
+}
+
+kendallNull(4)
+```
+
+# Making Table A.30
+
+Let's make the entire table into a dataframe
+```{r}
+n <- c(4,5,8,9,12,13,16,17,20,21,24,25,28,29,32,33,36,37,40) # Sample Sizes
+x <- seq(0, 100, 2) # x where P(K >= x)
+
+startTime <- Sys.time()
+table <- sapply(n, kendallNull) # Make the Table of P-Values
+df <- data.frame(x, table) # Make a Dataframe for the P-Values
+colnames(df) <- c("x", n)
+endTime <- Sys.time()
+
+endTime - startTime
+
+df
+```
+
+Export the Table to a CSV File
+```{r}
+write.csv(df, "C:/Users/EJ's/Desktop/Kendall_pValues2.csv" )
+print("CSV File Created Successfully")
+```
+
+
